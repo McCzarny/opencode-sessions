@@ -1,8 +1,6 @@
 # OpenCode Sessions for Stream Deck
 
-[![Build](https://github.com/OWNER/REPO/actions/workflows/build.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/build.yml)
-
-> Replace `OWNER/REPO` in the badge above with your repository path after publishing.
+[![Build](https://github.com/McCzarny/opencode-sessions/actions/workflows/build.yml/badge.svg)](https://github.com/McCzarny/opencode-sessions/actions/workflows/build.yml)
 
 A Stream Deck plugin that shows your current [OpenCode](https://opencode.ai) agent sessions and
 their status. Put one key per session on your deck and watch them run.
