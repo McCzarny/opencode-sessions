@@ -1,0 +1,51 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"Name": "OpenCode Sessions",
+	"Version": "1.0.0.0",
+	"Author": "OpenCode",
+	"Description": "Shows your current OpenCode agent sessions and their status on your Stream Deck. Keys line up with your sessions automatically, and pressing a key refreshes the status.",
+	"Category": "OpenCode",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Icon": "imgs/plugin/icon",
+	"CodePath": "bin/plugin.js",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20"
+	},
+	"UUID": "ai.opencode.streamdeck",
+	"Actions": [
+		{
+			"Name": "Session",
+			"UUID": "ai.opencode.streamdeck.session",
+			"Icon": "imgs/actions/session/action",
+			"Tooltip": "Shows an OpenCode session and its status. Press to refresh.",
+			"PropertyInspectorPath": "ui/session.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": false,
+			"DisableAutomaticStates": true,
+			"States": [
+				{
+					"Image": "imgs/actions/session/key",
+					"ShowTitle": false,
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	]
+}

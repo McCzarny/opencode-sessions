@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>OpenCode Session</title>
+		<meta charset="utf-8" />
+		<script src="sdpi-components.js"></script>
+		<style>
+			.status {
+				margin: 0;
+				font-size: 11px;
+				line-height: 1.5;
+				opacity: 0.9;
+			}
+			.status[data-state="error"] {
+				color: #ff6b6b;
+			}
+			.status[data-state="ready"] {
+				color: #6bcf7f;
+			}
+			.note {
+				margin: 0;
+				color: #969696;
+				font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+				font-size: 11px;
+				line-height: 1.5;
+			}
+			.hidden {
+				display: none;
+			}
+		</style>
+	</head>
+
+	<body>
+		<sdpi-item label="Source">
+			<sdpi-select id="mode" setting="mode" default="auto">
+				<option value="auto">Live slot</option>
+				<option value="pinned">Pinned session</option>
+			</sdpi-select>
+		</sdpi-item>
+
+		<div id="auto-fields">
+			<sdpi-item label="Scope">
+				<sdpi-select setting="scope" default="all">
+					<option value="all">All sessions</option>
+					<option value="active">Running / waiting only</option>
+				</sdpi-select>
+			</sdpi-item>
+
+			<sdpi-item label="Slot source">
+				<sdpi-select id="slotMode" setting="slotMode" default="position">
+					<option value="position">By key position</option>
+					<option value="number">Manual number</option>
+				</sdpi-select>
+			</sdpi-item>
+
+			<div id="manual-slot" class="hidden">
+				<sdpi-item label="Slot">
+					<sdpi-textfield id="slot" setting="slot" type="number" placeholder="1"></sdpi-textfield>
+				</sdpi-item>
+				<sdpi-item>
+					<p class="note">1 is the first session, 2 the next, and so on.</p>
+				</sdpi-item>
+			</div>
+
+			<div id="position-hint">
+				<sdpi-item>
+					<p class="note">Keys follow their place on the deck — the top-left is session 1, and each key to the right takes the next one.</p>
+				</sdpi-item>
+			</div>
+		</div>
+
+		<div id="pinned-fields" class="hidden">
+			<sdpi-item label="Session">
+				<select id="session" style="width: 100%"></select>
+			</sdpi-item>
+		</div>
+
+		<sdpi-item>
+			<p class="note">Press a key to refresh the status.</p>
+		</sdpi-item>
+
+		<sdpi-item>
+			<div id="status" class="status" data-state="connecting">Connecting to OpenCode…</div>
+		</sdpi-item>
+
+		<script src="session.js"></script>
+	</body>
+</html>

@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Keep GitHub Actions current; outdated versions are the usual cause of
+  # runner breakages.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]

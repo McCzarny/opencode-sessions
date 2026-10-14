@@ -1,0 +1,10 @@
+node_modules/
+dist-smoke/
+dist/
+
+# Generated at build time
+ai.opencode.streamdeck.sdPlugin/bin/
+ai.opencode.streamdeck.sdPlugin/logs/
+
+*.log
+.DS_Store
