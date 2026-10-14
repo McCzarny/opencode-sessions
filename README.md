@@ -14,6 +14,8 @@ their status. Put one key per session on your deck and watch them run.
 └───────────────┘  └───────────────┘  └───────────────┘
 ```
 
+![Screen shot](Screenshot.png)
+
 ## What it does
 
 - **Session keys** — each key renders one OpenCode session: a status colour, the session title
