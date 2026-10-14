@@ -2,6 +2,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import nodeResolve from "@rollup/plugin-node-resolve";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
+import polyfillNode from "rollup-plugin-polyfill-node";
 import path from "node:path";
 import url from "node:url";
 
@@ -30,6 +31,8 @@ const config = {
 			},
 		},
 		typescript({ tsconfig: "./tsconfig.json", noEmitOnError: !isWatching }),
+		// Polyfill Node built-ins for dependencies that expect them (required when using @rollup/plugin-commonjs v29+)
+		polyfillNode(),
 		nodeResolve({ browser: false, exportConditions: ["node"], preferBuiltins: true }),
 		commonjs(),
 		!isWatching && terser(),
