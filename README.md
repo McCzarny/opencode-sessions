@@ -41,7 +41,7 @@ their status. Put one key per session on your deck and watch them run.
 ## Requirements
 
 - Stream Deck 7.1 or newer.
-- OpenCode V2 installed and running (the plugin talks to the shared background service).
+- OpenCode V2 installed (the plugin discovers, or starts, the shared background service).
 - Node.js 20+ for building from source.
 
 ## Install from source
