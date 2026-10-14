@@ -17,8 +17,3 @@ updates:
     groups:
       npm:
         patterns: ["*"]
-    ignore:
-      # TypeScript 7 dropped the Node compiler API that @rollup/plugin-typescript
-      # drives, which breaks the bundle. Hold majors until the plugin supports it.
-      - dependency-name: typescript
-        update-types: ["version-update:semver-major"]
