@@ -22,8 +22,8 @@ their status. Put one key per session on your deck and watch them run.
   and a short subtitle (agent, pending prompts, id).
 - **Lots of keys, no setup** — by default keys claim their slot from their place on the deck, so a
   row of Session keys lines up with the first, second, third … session automatically.
-- **Live status** — the plugin polls the local OpenCode service (including active session drains
-  and pending permission requests) to keep the status current.
+- **Live status** — the plugin polls the local OpenCode service (active session drains, pending
+  permission requests, and pending questions) to keep the status current.
 - **Press to refresh** — pressing a key forces an immediate status refresh.
 
 ### Status values
@@ -31,7 +31,7 @@ their status. Put one key per session on your deck and watch them run.
 | Status         | Meaning                                                       |
 | -------------- | ------------------------------------------------------------- |
 | `RUNNING`      | The session is actively running in OpenCode.                  |
-| `NEEDS INPUT`  | The session is waiting on a permission request.               |
+| `NEEDS INPUT`  | The session is waiting on a permission request or a question. |
 | `UNREAD`       | The session finished and its latest idle transition is unseen. |
 | `FAILED`       | The last turn failed.                                         |
 | `STOPPED`      | The last turn was interrupted.                                |
@@ -99,7 +99,8 @@ npm run watch          # rebuild on change and restart the plugin
 - `src/plugin.ts` wires the action to a shared `OpenCodeConnection`.
 - `src/opencode/connection.ts` discovers or starts the local OpenCode service using the official
   [`@opencode/client`](https://www.npmjs.com/package/@opencode/client) service API, then polls
-  `/api/session`, `/api/session/active` and `/api/permission/request` every few seconds.
+  `/api/session`, `/api/session/active`, `/api/permission/request`, and the per-session form and
+  permission endpoints every few seconds.
 - `src/render.ts` draws each key as an SVG data URL.
 - `src/actions/session.ts` is the Stream Deck action, and `ai.opencode.streamdeck.sdPlugin/ui/*`
   is its property inspector.

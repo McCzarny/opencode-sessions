@@ -1,5 +1,5 @@
 import streamDeck from "@elgato/streamdeck";
-import { OpenCode, type OpenCodeClient, type SessionActive, type SessionInfo, type PermissionRequestListOutput } from "@opencode/client";
+import { OpenCode, type OpenCodeClient, type SessionInfo } from "@opencode/client";
 import { Service } from "@opencode/client/service";
 
 /**
@@ -27,9 +27,9 @@ export type ConnectionState = "connecting" | "ready" | "error";
 type Listener = () => void;
 
 /**
- * Maintains a live view of the local OpenCode service, polling sessions, active drains and
- * pending permission requests. It transparently discovers or starts the shared background
- * service through the official client.
+ * Maintains a live view of the local OpenCode service: sessions, active drains, and the input a
+ * session is blocked on (permission prompts and question forms). It transparently discovers or
+ * starts the shared background service through the official client.
  */
 export class OpenCodeConnection {
 	private client?: OpenCodeClient;
@@ -126,7 +126,31 @@ export class OpenCodeConnection {
 				client.permission.request.list().catch(() => undefined),
 			]);
 
-			this.view = buildSessions(list.data, active, permissions);
+			const activeIDs = new Set(active ? Object.keys(active) : []);
+			const pending = new Map<string, number>();
+
+			for (const request of permissions?.data ?? []) {
+				pending.set(request.sessionID, (pending.get(request.sessionID) ?? 0) + 1);
+			}
+
+			// A session blocked on a question form (or a permission prompt) still reports as a
+			// running drain, so probe the active sessions for pending input. This is scoped to the
+			// active sessions to keep the polling cheap.
+			await Promise.all(
+				[...activeIDs].map(async (id) => {
+					const [forms, requests] = await Promise.all([
+						client.session.form.list({ sessionID: id }).catch(() => []),
+						client.permission.list({ sessionID: id }).catch(() => []),
+					]);
+					const count = (forms?.length ?? 0) + (requests?.length ?? 0);
+
+					if (count > 0) {
+						pending.set(id, Math.max(pending.get(id) ?? 0, count));
+					}
+				}),
+			);
+
+			this.view = buildSessions(list.data, activeIDs, pending);
 			this.errorMessage = undefined;
 			this.setState("ready");
 		} catch (error) {
@@ -158,18 +182,7 @@ export class OpenCodeConnection {
 /**
  * Builds the sorted session views from the API responses.
  */
-function buildSessions(
-	sessions: SessionInfo[],
-	active: Record<string, SessionActive> | undefined,
-	permissions: PermissionRequestListOutput | undefined,
-): SessionView[] {
-	const activeIDs = new Set(active ? Object.keys(active) : []);
-	const pending = new Map<string, number>();
-
-	for (const request of permissions?.data ?? []) {
-		pending.set(request.sessionID, (pending.get(request.sessionID) ?? 0) + 1);
-	}
-
+function buildSessions(sessions: SessionInfo[], activeIDs: Set<string>, pending: Map<string, number>): SessionView[] {
 	return sessions
 		.map((session) => toView(session, activeIDs.has(session.id), pending.get(session.id) ?? 0))
 		.sort((left, right) => right.updated - left.updated);
@@ -202,12 +215,13 @@ function resolveTitle(session: SessionInfo, directory: string): string {
 }
 
 function resolveStatus(session: SessionInfo, active: boolean, pending: number): SessionStatus {
-	if (active) {
-		return "running";
-	}
-
+	// A session blocked on input takes precedence over a plain running state.
 	if (pending > 0) {
 		return "waiting";
+	}
+
+	if (active) {
+		return "running";
 	}
 
 	if (session.outcome === "failed") {
