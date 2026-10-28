@@ -17,11 +17,11 @@
 		"node": ">=20"
 	},
 	"dependencies": {
-		"@elgato/streamdeck": "^3.0.2",
-		"@opencode/client": "^2.0.29"
+		"@elgato/streamdeck": "^3.0.3",
+		"@opencode/client": "^2.1.4"
 	},
 	"devDependencies": {
-		"@elgato/cli": "^1.7.1",
+		"@elgato/cli": "^1.10.3",
 		"@tsconfig/node20": "^20.1.4",
 		"@types/node": "^26.6.5",
 		"esbuild": "^0.28.2",
