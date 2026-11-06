@@ -1,14 +1,16 @@
 import streamDeck from "@elgato/streamdeck";
 import { SessionAction } from "./actions/session.js";
+import { UsageAction } from "./actions/usage.js";
 import { OpenCodeConnection } from "./opencode/connection.js";
 
 const connection = new OpenCodeConnection();
 const sessionAction = new SessionAction(connection);
+const usageAction = new UsageAction(connection);
 
 streamDeck.actions.registerAction(sessionAction);
+streamDeck.actions.registerAction(usageAction);
 
-// Re-render keys whenever the connection state or session list changes.
-connection.on(() => sessionAction.refresh());
+let lastUsageSignature: string | undefined;
 
 // Serve session data to the property inspector (dropdown + status line).
 function publishSessions(): void {
@@ -26,13 +28,48 @@ function publishSessions(): void {
 	});
 }
 
-streamDeck.ui.onDidAppear(() => publishSessions());
+// Serve Go usage to the usage property inspector. Only send when something changed, because the
+// connection also emits on every session poll.
+function publishUsage(force = false): void {
+	const payload = {
+		event: "usage",
+		state: connection.state,
+		usageState: connection.usageState,
+		usage: connection.usage,
+		error: connection.usageError,
+	};
+	const signature = JSON.stringify(payload);
+
+	if (!force && signature === lastUsageSignature) {
+		return;
+	}
+
+	lastUsageSignature = signature;
+	void streamDeck.ui.sendToPropertyInspector(payload);
+}
+
+// Re-render keys whenever the connection state or session list changes.
+connection.on(() => {
+	sessionAction.refresh();
+	usageAction.refresh();
+	publishUsage();
+});
+
+streamDeck.ui.onDidAppear(() => {
+	publishSessions();
+	publishUsage(true);
+});
 
 streamDeck.ui.onSendToPlugin((ev) => {
 	const payload = ev.payload as { event?: string } | undefined;
 
-	if (payload?.event === "getSessions") {
-		publishSessions();
+	switch (payload?.event) {
+		case "getSessions":
+			publishSessions();
+			break;
+		case "getUsage":
+			publishUsage(true);
+			break;
 	}
 });
 

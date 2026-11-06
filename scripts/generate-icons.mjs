@@ -205,6 +205,26 @@ function drawSessionsApp(canvas) {
 	drawSessions(canvas);
 }
 
+// Three horizontal bars, like a usage meter.
+const USAGE_BARS = [
+	{ x: 0.18, y: 0.27, width: 0.64, height: 0.1 },
+	{ x: 0.18, y: 0.45, width: 0.48, height: 0.1 },
+	{ x: 0.18, y: 0.63, width: 0.32, height: 0.1 },
+];
+
+function drawUsage(canvas) {
+	for (const bar of USAGE_BARS) {
+		canvas.roundRect(bar.x, bar.y, bar.width, bar.height, 0.05, COLORS.grey);
+	}
+}
+
+function drawUsageApp(canvas) {
+	canvas.roundRect(0.02, 0.02, 0.96, 0.96, 0.22, COLORS.background);
+	canvas.roundRect(0.02, 0.02, 0.96, 0.96, 0.22, COLORS.border);
+	canvas.roundRect(0.045, 0.045, 0.91, 0.91, 0.2, COLORS.background);
+	drawUsage(canvas);
+}
+
 function png(width, height, rgba) {
 	const raw = Buffer.alloc((width * 4 + 1) * height);
 
@@ -287,3 +307,9 @@ write("imgs/actions/session/action.png", 20, drawSessions);
 write("imgs/actions/session/action@2x.png", 40, drawSessions);
 write("imgs/actions/session/key.png", 144, drawSessionsApp);
 write("imgs/actions/session/key@2x.png", 288, drawSessionsApp);
+
+// Go usage action.
+write("imgs/actions/usage/action.png", 20, drawUsage);
+write("imgs/actions/usage/action@2x.png", 40, drawUsage);
+write("imgs/actions/usage/key.png", 144, drawUsageApp);
+write("imgs/actions/usage/key@2x.png", 288, drawUsageApp);

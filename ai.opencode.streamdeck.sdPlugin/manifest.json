@@ -4,7 +4,7 @@
 	"Version": "1.0.0.0",
 	"Author": "OpenCode",
 	"Description": "Shows your current OpenCode agent sessions and their status on your Stream Deck. Keys line up with your sessions automatically, and pressing a key refreshes the status.",
-	"Category": "OpenCode",
+	"Category": "OpenCode Sessions",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"Icon": "imgs/plugin/icon",
 	"CodePath": "bin/plugin.js",
@@ -42,6 +42,26 @@
 			"States": [
 				{
 					"Image": "imgs/actions/session/key",
+					"ShowTitle": false,
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Go usage",
+			"UUID": "ai.opencode.streamdeck.usage",
+			"Icon": "imgs/actions/usage/action",
+			"Tooltip": "Shows the percentage of your OpenCode Go limit used. Press to refresh.",
+			"PropertyInspectorPath": "ui/usage.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": false,
+			"DisableAutomaticStates": true,
+			"States": [
+				{
+					"Image": "imgs/actions/usage/key",
 					"ShowTitle": false,
 					"TitleAlignment": "middle"
 				}

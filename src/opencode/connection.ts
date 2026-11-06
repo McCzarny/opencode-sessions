@@ -1,6 +1,7 @@
 import streamDeck from "@elgato/streamdeck";
 import { OpenCode, type OpenCodeClient, type SessionInfo } from "@opencode/client";
 import { Service } from "@opencode/client/service";
+import type { UsageWindow } from "../settings.js";
 
 /**
  * Lifecycle status shown for a session on the Stream Deck key.
@@ -24,7 +25,29 @@ export type SessionView = {
 
 export type ConnectionState = "connecting" | "ready" | "error";
 
+/** One OpenCode Go usage window. `percent` is the share of the limit already used. */
+export type UsageMeter = {
+	readonly percent: number;
+	readonly limited: boolean;
+	readonly resetsAt: number;
+};
+
+/** All three OpenCode Go usage windows. */
+export type GoUsage = Record<UsageWindow, UsageMeter>;
+
+export type UsageState = "unknown" | "ready" | "unsupported" | "unavailable" | "error";
+
 type Listener = () => void;
+
+type UsageLimitsResponse = {
+	readonly data?: {
+		readonly go?: {
+			readonly rolling?: unknown;
+			readonly weekly?: unknown;
+			readonly monthly?: unknown;
+		} | null;
+	} | null;
+};
 
 /**
  * Maintains a live view of the local OpenCode service: sessions, active drains, and the input a
@@ -34,13 +57,19 @@ type Listener = () => void;
 export class OpenCodeConnection {
 	private client?: OpenCodeClient;
 	private clientPromise?: Promise<OpenCodeClient | undefined>;
+	private endpoint?: Awaited<ReturnType<typeof Service.ensure>>;
 	private endpointUrl?: string;
 	private timer?: ReturnType<typeof setInterval>;
+	private usageTimer?: ReturnType<typeof setInterval>;
 	private readonly listeners = new Set<Listener>();
 	private view: SessionView[] = [];
 	private currentState: ConnectionState = "connecting";
 	private errorMessage?: string;
 	private refreshing = false;
+	private usageView?: GoUsage;
+	private usageStatus: UsageState = "unknown";
+	private usageErrorMessage?: string;
+	private refreshingUsage = false;
 
 	get state(): ConnectionState {
 		return this.currentState;
@@ -57,6 +86,18 @@ export class OpenCodeConnection {
 
 	get sessions(): SessionView[] {
 		return this.view;
+	}
+
+	get usage(): GoUsage | undefined {
+		return this.usageView;
+	}
+
+	get usageState(): UsageState {
+		return this.usageStatus;
+	}
+
+	get usageError(): string | undefined {
+		return this.usageErrorMessage;
 	}
 
 	/** Subscribes to state/session updates; returns an unsubscribe function. */
@@ -78,6 +119,19 @@ export class OpenCodeConnection {
 		}
 	}
 
+	/** Refreshes Go usage once, then keeps polling while a usage key is visible. */
+	startUsage(intervalMs = 60_000): void {
+		void this.refreshUsage();
+		this.usageTimer ??= setInterval(() => void this.refreshUsage(), intervalMs);
+	}
+
+	stopUsage(): void {
+		if (this.usageTimer) {
+			clearInterval(this.usageTimer);
+			this.usageTimer = undefined;
+		}
+	}
+
 	/** Resolves (and caches) an authenticated client for the local service. */
 	async ensureClient(): Promise<OpenCodeClient | undefined> {
 		if (this.client) {
@@ -88,12 +142,14 @@ export class OpenCodeConnection {
 			this.clientPromise = (async () => {
 				try {
 					const endpoint = await Service.ensure();
+					this.endpoint = endpoint;
 					this.endpointUrl = endpoint.url;
 					this.client = OpenCode.make({ baseUrl: endpoint.url, headers: Service.headers(endpoint) });
 					return this.client;
 				} catch (error) {
 					this.errorMessage = describe(error);
 					this.client = undefined;
+					this.endpoint = undefined;
 					return undefined;
 				} finally {
 					this.clientPromise = undefined;
@@ -157,10 +213,83 @@ export class OpenCodeConnection {
 			this.errorMessage = describe(error);
 			// Drop the cached client so the next tick rediscovers the service.
 			this.client = undefined;
+			this.endpoint = undefined;
 			this.setState("error");
 		} finally {
 			this.refreshing = false;
 		}
+	}
+
+	/**
+	 * Pulls the OpenCode Go allowance from the local service. The endpoint is available in newer
+	 * OpenCode builds; older services answer 404 and the key explains that an update is needed.
+	 */
+	async refreshUsage(): Promise<void> {
+		if (this.refreshingUsage) {
+			return;
+		}
+
+		this.refreshingUsage = true;
+
+		try {
+			const client = await this.ensureClient();
+
+			if (!client || !this.endpoint) {
+				this.usageView = undefined;
+				this.usageStatus = "error";
+				this.usageErrorMessage = this.errorMessage ?? "OpenCode unavailable";
+				return;
+			}
+
+			const response = await fetch(new URL("/api/experimental/usage/limits", this.endpoint.url), {
+				headers: this.headers(),
+				signal: AbortSignal.timeout(10_000),
+			});
+
+			if (response.status === 404) {
+				this.usageView = undefined;
+				this.usageStatus = "unsupported";
+				this.usageErrorMessage = undefined;
+				return;
+			}
+
+			if (!response.ok) {
+				throw new Error(`Usage request failed (${response.status})`);
+			}
+
+			const go = parseGoUsage((await response.json()) as UsageLimitsResponse);
+
+			if (!go) {
+				this.usageView = undefined;
+				this.usageStatus = "unavailable";
+				this.usageErrorMessage = undefined;
+				return;
+			}
+
+			this.usageView = go;
+			this.usageStatus = "ready";
+			this.usageErrorMessage = undefined;
+		} catch (error) {
+			this.usageView = undefined;
+			this.usageStatus = "error";
+			this.usageErrorMessage = describe(error);
+			streamDeck.logger.error(`Usage refresh failed: ${describe(error)}`);
+		} finally {
+			this.refreshingUsage = false;
+			this.emit();
+		}
+	}
+
+	private headers(): Record<string, string> | undefined {
+		const auth = this.endpoint?.auth;
+
+		if (!auth) {
+			return undefined;
+		}
+
+		return {
+			authorization: `Basic ${Buffer.from(`${auth.username}:${auth.password}`).toString("base64")}`,
+		};
 	}
 
 	private setState(state: ConnectionState): void {
@@ -248,6 +377,42 @@ function isUnviewed(session: SessionInfo): boolean {
 	const { idle, viewed } = session.time;
 
 	return idle !== undefined && (viewed === undefined || idle > viewed);
+}
+
+function parseGoUsage(payload: UsageLimitsResponse): GoUsage | undefined {
+	const go = payload?.data?.go;
+
+	if (!go) {
+		return undefined;
+	}
+
+	const rolling = parseMeter(go.rolling);
+	const weekly = parseMeter(go.weekly);
+	const monthly = parseMeter(go.monthly);
+
+	if (!rolling || !weekly || !monthly) {
+		return undefined;
+	}
+
+	return { rolling, weekly, monthly };
+}
+
+function parseMeter(value: unknown): UsageMeter | undefined {
+	if (typeof value !== "object" || value === null) {
+		return undefined;
+	}
+
+	const meter = value as { percent?: unknown; limited?: unknown; resetsAt?: unknown };
+
+	if (typeof meter.percent !== "number" || !Number.isFinite(meter.percent)) {
+		return undefined;
+	}
+
+	return {
+		percent: Math.min(100, Math.max(0, meter.percent)),
+		limited: meter.limited === true,
+		resetsAt: typeof meter.resetsAt === "number" && Number.isFinite(meter.resetsAt) ? meter.resetsAt : 0,
+	};
 }
 
 function describe(error: unknown): string {

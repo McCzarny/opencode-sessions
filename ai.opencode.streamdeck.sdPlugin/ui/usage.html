@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>OpenCode Go Usage</title>
+		<meta charset="utf-8" />
+		<script src="sdpi-components.js"></script>
+		<style>
+			.status {
+				margin: 0;
+				font-size: 11px;
+				line-height: 1.5;
+				opacity: 0.9;
+			}
+			.status[data-state="error"] {
+				color: #ff6b6b;
+			}
+			.status[data-state="ready"] {
+				color: #6bcf7f;
+			}
+			.note {
+				margin: 0;
+				color: #969696;
+				font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+				font-size: 11px;
+				line-height: 1.5;
+			}
+		</style>
+	</head>
+
+	<body>
+		<sdpi-item label="Window">
+			<sdpi-select setting="window" default="monthly">
+				<option value="rolling">Last 5 hours</option>
+				<option value="weekly">This week</option>
+				<option value="monthly">This month</option>
+			</sdpi-select>
+		</sdpi-item>
+
+		<sdpi-item>
+			<p class="note">Shows the percentage of your OpenCode Go limit used in the selected window.</p>
+		</sdpi-item>
+
+		<sdpi-item>
+			<div id="status" class="status" data-state="connecting">Loading usage…</div>
+		</sdpi-item>
+
+		<sdpi-item>
+			<p class="note">Press the key to refresh. Requires OpenCode 2.2.5 or newer and an active Go plan.</p>
+		</sdpi-item>
+
+		<script src="usage.js"></script>
+	</body>
+</html>

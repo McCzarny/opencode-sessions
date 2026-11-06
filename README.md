@@ -2,16 +2,16 @@
 
 [![Build](https://github.com/McCzarny/opencode-sessions/actions/workflows/build.yml/badge.svg)](https://github.com/McCzarny/opencode-sessions/actions/workflows/build.yml)
 
-A Stream Deck plugin that shows your current [OpenCode](https://opencode.ai) agent sessions and
-their status. Put one key per session on your deck and watch them run.
+A Stream Deck plugin that shows your current [OpenCode](https://opencode.ai) agent sessions, their
+status, and your OpenCode Go usage. Put one key per session on your deck and watch them run.
 
 ```
-┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-│ ● RUNNING     │  │ ● NEEDS INPUT │  │ ● UNREAD      │
-│ Stream Deck   │  │ Refactor auth │  │ Battle UI     │
-│ extension…    │  │ middleware    │  │ icons         │
-│ build · a1b2  │  │ build · c3d4  │  │ explore · e5f │
-└───────────────┘  └───────────────┘  └───────────────┘
+┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+│ ● RUNNING     │  │ ● NEEDS INPUT │  │ ● UNREAD      │  │ ● GO · MONTH  │
+│ Stream Deck   │  │ Refactor auth │  │ Battle UI     │  │          94%  │
+│ extension…    │  │ middleware    │  │ icons         │  │ resets in 2d  │
+│ build · a1b2  │  │ build · c3d4  │  │ explore · e5f │  │ ██████████░   │
+└───────────────┘  └───────────────┘  └───────────────┘  └───────────────┘
 ```
 
 ![Screen shot](Screenshot.png)
@@ -20,11 +20,13 @@ their status. Put one key per session on your deck and watch them run.
 
 - **Session keys** — each key renders one OpenCode session: a status colour, the session title
   and a short subtitle (agent, pending prompts, id).
+- **Go usage key** — shows the percentage of your OpenCode Go limit used, with a progress bar and
+  the time until the window resets. Choose the rolling 5-hour, weekly, or monthly window.
 - **Lots of keys, no setup** — by default keys claim their slot from their place on the deck, so a
   row of Session keys lines up with the first, second, third … session automatically.
 - **Live status** — the plugin polls the local OpenCode service (active session drains, pending
   permission requests, and pending questions) to keep the status current.
-- **Press to refresh** — pressing a key forces an immediate status refresh.
+- **Press to refresh** — pressing a key forces an immediate status or usage refresh.
 
 ### Status values
 
@@ -44,6 +46,7 @@ their status. Put one key per session on your deck and watch them run.
 
 - Stream Deck 7.1 or newer.
 - OpenCode V2 installed (the plugin discovers, or starts, the shared background service).
+- OpenCode 2.2.5 or newer for the Go usage key.
 - Node.js 20+ for building from source.
 
 ## Install from source
@@ -82,8 +85,11 @@ npm run watch          # rebuild on change and restart the plugin
 
 ## Using it
 
-1. Add a **Session** key to your deck (drag it from the OpenCode category).
-2. In the property inspector choose how the key picks a session:
+1. Add a **Session** key to your deck (drag it from the **OpenCode Sessions** category).
+2. Add a **Go usage** key to show the percentage of your OpenCode Go allowance used. In its
+   property inspector choose the **rolling 5-hour**, **weekly**, or **monthly** window (monthly by
+   default). Press the key to refresh.
+3. In the Session property inspector choose how the key picks a session:
    - **Live slot** — the key follows a session in the list. By default **Slot source** is
      **By key position**: drop several Session keys and they line up with the first, second,
      third … session based on their place on the deck (row, then column). Pinned keys are skipped
@@ -92,25 +98,29 @@ npm run watch          # rebuild on change and restart the plugin
      **Scope** decides which sessions are counted: **All sessions** (the default) or **Running /
      waiting only**.
    - **Pinned session** — the key always shows one session you pick from the dropdown.
-3. Press a key to refresh the status immediately.
+4. Press a key to refresh its status or usage immediately.
 
 ## How it works
 
-- `src/plugin.ts` wires the action to a shared `OpenCodeConnection`.
+- `src/plugin.ts` wires the actions to a shared `OpenCodeConnection`.
 - `src/opencode/connection.ts` discovers or starts the local OpenCode service using the official
   [`@opencode/client`](https://www.npmjs.com/package/@opencode/client) service API, then polls
   `/api/session`, `/api/session/active`, `/api/permission/request`, and the per-session form and
-  permission endpoints every few seconds.
+  permission endpoints every few seconds. It also polls `/api/experimental/usage/limits` every
+  minute while a Go usage key is visible.
 - `src/render.ts` draws each key as an SVG data URL.
-- `src/actions/session.ts` is the Stream Deck action, and `ai.opencode.streamdeck.sdPlugin/ui/*`
-  is its property inspector.
+- `src/actions/session.ts` and `src/actions/usage.ts` are the Stream Deck actions, and
+  `ai.opencode.streamdeck.sdPlugin/ui/*` contains their property inspectors.
 
 ## Limitations
 
 - Stream Deck cannot add or remove keys at runtime, so the "view" is a set of keys you lay out
   (they are assigned by position or pinning).
-- Status updates are polled (default 2s) rather than pushed; press a key to refresh on demand.
-- The plugin only reads session state. It does not open or navigate OpenCode, because the desktop
+- Session status updates are polled (default 2s) and Go usage every minute rather than pushed;
+  press a key to refresh on demand.
+- The Go usage key needs OpenCode 2.2.5 or newer (the service must expose the usage-limits
+  endpoint) and an active OpenCode Go plan.
+- The plugin only reads OpenCode state. It does not open or navigate OpenCode, because the desktop
   app has no session deep link yet.
 
 ## License

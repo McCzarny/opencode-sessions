@@ -34,3 +34,24 @@ export const DEFAULTS = {
 	slot: 1,
 	scope: "all" as SessionScope,
 };
+
+/**
+ * Which OpenCode Go usage window a usage key displays.
+ *
+ * - `rolling` — the rolling five-hour window.
+ * - `weekly` — the current week.
+ * - `monthly` — the current month.
+ */
+export type UsageWindow = "rolling" | "weekly" | "monthly";
+
+/**
+ * Settings for the `usage` key action.
+ */
+export type UsageSettings = {
+	/** Which limit meter to show. */
+	window?: UsageWindow;
+};
+
+export const USAGE_DEFAULTS = {
+	window: "monthly" as UsageWindow,
+};
